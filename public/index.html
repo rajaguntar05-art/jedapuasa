@@ -139,6 +139,14 @@ input[type=checkbox]{width:24px;height:24px;min-height:0;accent-color:var(--fast
 .chart .hit{fill:transparent;cursor:pointer}
 .tag{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
 .empty-fade{opacity:.45}
+.ins{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--line)}
+.ins:first-child{border-top:0;padding-top:0}
+.ins .lv{flex:none;width:70px;font-size:.72rem;font-weight:700;padding-top:2px}
+.lv.good{color:var(--good)}.lv.warn{color:var(--warn)}.lv.info{color:var(--muted)}
+.msgs{display:flex;flex-direction:column;gap:8px}
+.msg{padding:10px 12px;border-radius:12px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:var(--fast);color:var(--on-fast)}
+.msg.assistant{align-self:flex-start;background:var(--surface);border:1px solid var(--line)}
 .hist{display:flex;flex-direction:column}
 .hist>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
 .hist>div:first-child{border-top:0}
@@ -429,6 +437,59 @@ function sNext(){const s=ses;s.i++;if(s.i>=s.q.length)return sEnd(true);s.left=s
 function sEnd(full){const s=ses;clearInterval(s.tm);try{s.lock&&s.lock.release()}catch(e){}if(stopFig){stopFig();stopFig=null}overlay.innerHTML='';const m=Math.max(1,Math.round((Date.now()-s.t0)/60000));
  if(full||s.done>=60){S.workouts.push({ts:Date.now(),min:m,name:s.p.n});save();toast('Sesi '+m+' menit tercatat.')}ses=null;render()}
 
+/* ---------- Analisis: semua angka dihitung di sini ---------- */
+const round=(v,d=1)=>v==null?null:Math.round(v*10**d)/10**d;
+const median=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+function regress(pts){const n=pts.length,mx=pts.reduce((a,p)=>a+p.x,0)/n,my=pts.reduce((a,p)=>a+p.y,0)/n,sxx=pts.reduce((a,p)=>a+(p.x-mx)**2,0);return sxx?pts.reduce((a,p)=>a+(p.x-mx)*(p.y-my),0)/sxx:0}
+function analyze(st,now=Date.now()){const WEEK=7*864e5,M=28*864e5,HARI=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+ const fs=st.fasts.filter(f=>f.end>now-M),hrs=fs.map(f=>(f.end-f.start)/36e5),hit=fs.filter(f=>(f.end-f.start)/36e5>=f.target-.25);
+ const first=st.fasts.length?Math.min(...st.fasts.map(f=>f.end)):now,span=Math.min(28,Math.ceil((now-first)/864e5)+1),days=new Set(fs.map(f=>dayKey(f.end))).size;
+ let startDev=null;if(fs.length>=3){const a=fs.map(f=>{const d=new Date(f.start);return(d.getHours()*60+d.getMinutes())/1440*2*Math.PI});const c=Math.atan2(a.reduce((x,v)=>x+Math.sin(v),0),a.reduce((x,v)=>x+Math.cos(v),0));
+  startDev=a.reduce((x,v)=>x+Math.abs(Math.atan2(Math.sin(v-c),Math.cos(v-c))),0)/a.length/(2*Math.PI)*1440}
+ const dw=Array.from({length:7},(_,i)=>({d:HARI[i],n:0,hit:0}));fs.forEach(f=>{const x=dw[new Date(f.end).getDay()];x.n++;if((f.end-f.start)/36e5>=f.target-.25)x.hit++});
+ const cand=dw.filter(x=>x.n>=2).map(x=>({...x,r:x.hit/x.n})).sort((a,b)=>a.r-b.r),worst=cand.length>1&&cand[0].r<cand[cand.length-1].r?cand[0]:null,best=worst?cand[cand.length-1]:null;
+ const ws=[...st.weights].sort((a,b)=>a.ts-b.ts),rw=ws.filter(w=>w.ts>now-M),cur=ws.length?ws[ws.length-1].kg:null;
+ const wspan=rw.length?(rw[rw.length-1].ts-rw[0].ts)/864e5:0,slope=rw.length>=3&&wspan>=14?regress(rw.map(w=>({x:w.ts/WEEK,y:w.kg}))):null;
+ const eta=slope!=null&&slope<-.1&&st.targetWeight&&cur>st.targetWeight?(cur-st.targetWeight)/-slope:null;
+ const wk=st.workouts.filter(w=>w.ts>now-WEEK),wkDays=Object.entries(st.water).filter(([k])=>new Date(k+'T12:00').getTime()>now-WEEK).map(([,v])=>v);
+ return{pola:st.protocol+':'+(24-st.protocol),puasa:{jumlah28Hari:fs.length,hariTercatat:days,hariDipantau:span,konsistensiPersen:span?round(days/span*100,0):null,tercapaiPersen:fs.length?round(hit.length/fs.length*100,0):null,rataJam:hrs.length?round(hrs.reduce((a,b)=>a+b,0)/hrs.length):null,medianJam:round(median(hrs)),terlamaJam:hrs.length?round(Math.max(...hrs)):null,simpanganMulaiMenit:round(startDev,0),hariTerlemah:worst&&{hari:worst.d,tercapai:worst.hit,dari:worst.n},hariTerkuat:best&&{hari:best.d,tercapai:best.hit,dari:best.n},beruntun:streakOf(st,now)},
+  berat:{catatan28Hari:rw.length,terakhirKg:cur,targetKg:st.targetWeight,perubahan28HariKg:rw.length>=2?round(rw[rw.length-1].kg-rw[0].kg):null,trenKgPerMinggu:round(slope,2),perkiraanMingguKeTarget:eta==null?null:round(eta,0)},
+  latihan:{menit7Hari:wk.reduce((a,w)=>a+w.min,0),sesi7Hari:wk.length,targetWHOMenit:150},air:{rataGelas7Hari:wkDays.length?round(wkDays.reduce((a,b)=>a+b,0)/wkDays.length):null,target:st.waterGoal,hariTercatat:wkDays.length}}}
+function streakOf(st,now){const ok=new Set(st.fasts.filter(f=>(f.end-f.start)/36e5>=f.target-.25).map(f=>dayKey(f.end)));let d=new Date(midnight(now)),c=0;if(!ok.has(dayKey(d.getTime())))d.setDate(d.getDate()-1);while(ok.has(dayKey(d.getTime()))){c++;d.setDate(d.getDate()-1)}return c}
+function insights(m){const o=[],p=m.puasa,b=m.berat,a=(l,t)=>o.push([l,t]);
+ if(p.jumlah28Hari<5)a('info',`Baru ${p.jumlah28Hari} puasa tercatat dalam 28 hari. Pola mulai terbaca setelah 5 puasa.`);
+ else{if(p.tercapaiPersen>=80)a('good',`Target tercapai pada ${p.tercapaiPersen}% puasa, rata-rata ${p.rataJam} jam.`);else if(p.tercapaiPersen<50)a('warn',`Target baru tercapai pada ${p.tercapaiPersen}% puasa. Rata-rata ${p.rataJam} jam, coba pola yang lebih pendek dulu.`);else a('info',`Target tercapai pada ${p.tercapaiPersen}% puasa, rata-rata ${p.rataJam} jam.`);
+  if(p.hariTerlemah)a('warn',`${p.hariTerlemah.hari} paling berat: target tercapai ${p.hariTerlemah.tercapai} dari ${p.hariTerlemah.dari} kali.`);
+  if(p.simpanganMulaiMenit!=null&&p.simpanganMulaiMenit>60)a('info',`Jam mulai puasa bergeser rata-rata ${p.simpanganMulaiMenit} menit. Jam yang lebih tetap biasanya lebih mudah dijalani.`)}
+ if(p.terlamaJam>24)a('warn',`Puasa terlama ${p.terlamaJam} jam. Lebih dari 24 jam sebaiknya didiskusikan dengan dokter.`);
+ if(b.trenKgPerMinggu==null)a('info',`Tren berat belum terbaca. Perlu minimal 3 catatan dalam rentang 14 hari, sekarang ${b.catatan28Hari} catatan.`);
+ else if(b.trenKgPerMinggu<-1)a('warn',`Berat turun ${-b.trenKgPerMinggu} kg per minggu. Ini cepat, pertimbangkan menambah makan dan bicara dengan dokter.`);
+ else if(b.trenKgPerMinggu<-.1)a('good',`Berat turun ${-b.trenKgPerMinggu} kg per minggu${b.perkiraanMingguKeTarget?`. Kalau tren bertahan, target tercapai sekitar ${b.perkiraanMingguKeTarget} minggu lagi`:''}.`);
+ else if(b.trenKgPerMinggu>.1)a('info',`Berat naik ${b.trenKgPerMinggu} kg per minggu dalam 28 hari terakhir.`);else a('info','Berat stabil dalam 28 hari terakhir.');
+ a(m.latihan.menit7Hari>=150?'good':'info',`Latihan ${m.latihan.menit7Hari} dari 150 menit minggu ini.`);
+ if(m.air.rataGelas7Hari!=null&&m.air.rataGelas7Hari<m.air.target*.75)a('warn',`Rata-rata minum ${m.air.rataGelas7Hari} gelas, di bawah target ${m.air.target} gelas.`);
+ return o}
+const LV={good:'Bagus',warn:'Perhatikan',info:'Catatan'};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let chat=[],busy=false;
+const aiOK=()=>!!document.querySelector('link[rel=manifest]');
+function msgsHtml(){return chat.map(m=>`<div class="msg ${m.role}">${esc(m.content)}</div>`).join('')+(busy?'<div class="msg assistant muted">Menganalisis...</div>':'')}
+function openCoach(){if(!aiOK()){toast('Agent tersedia di aplikasi yang dipasang dari Netlify.');return}
+ const Q=['Ringkas progres saya minggu ini','Apa yang paling perlu saya ubah?','Apakah saya siap naik pola puasa?'];
+ openSheet(`<div class="row"><h2>Tanya agent</h2><button class="iconbtn" data-close aria-label="Tutup">✕</button></div>
+ ${S.coachCode?'':'<div class="field"><label for="cCode">Kode akses (JEDA_KODE di Netlify)</label><input id="cCode" type="password" autocomplete="off"></div>'}
+ <div class="msgs" id="cMsgs">${msgsHtml()}</div>
+ ${chat.length?'':`<div class="stack" style="gap:6px">${Q.map(q=>`<button class="chip" style="text-align:left" data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div>`}
+ <form id="cForm" class="stack" style="gap:8px"><div class="field"><label for="cQ">Pertanyaan</label><textarea id="cQ" maxlength="500" style="min-height:64px"></textarea></div><button class="btn primary block">Kirim</button></form>
+ <p class="small muted">Saat Anda bertanya, ringkasan angka dikirim ke Claude. Catatan per hari tidak dikirim. Agent dapat keliru, dan ini bukan saran medis.</p>`)}
+async function sendQ(q){q=q.trim();if(!q||busy)return;const c=$('#cCode');if(c&&c.value.trim()){S.coachCode=c.value.trim();save()}if(!S.coachCode){toast('Isi kode akses dulu.');return}
+ const history=chat.slice(-6);chat.push({role:'user',content:q});busy=true;openCoach();
+ let msg=null;try{const r=await fetch('/api/coach',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:S.coachCode,question:q,history,metrics:analyze(S)})}),j=await r.json().catch(()=>({}));
+  if(r.ok)chat.push({role:'assistant',content:j.text});
+  else{msg={401:'Kode akses salah. Isi lagi lalu kirim ulang.',429:'Batas pertanyaan hari ini tercapai. Coba lagi besok.',503:'Agent belum disiapkan. Isi ANTHROPIC_API_KEY dan JEDA_KODE di Netlify.'}[r.status]||'Agent sedang gangguan. Coba lagi sebentar.';if(r.status===401){S.coachCode='';save()}}}
+ catch(e){msg='Tidak ada koneksi. Periksa internet lalu coba lagi.'}
+ busy=false;if(msg){chat.pop();toast(msg)}if($('#cMsgs'))openCoach();else if(msg)openCoach()}
+
 /* ---------- Progres ---------- */
 function streak(){const ok=new Set(S.fasts.filter(f=>(f.end-f.start)/36e5>=f.target-.25).map(f=>dayKey(f.end)));let d=midnight(Date.now()),c=0;if(!ok.has(dayKey(d)))d-=864e5;while(ok.has(dayKey(d+432e5))){c++;d=midnight(d-432e5)}return c}
 function barData(){const out=[],base=midnight(Date.now());for(let i=13;i>=0;i--){const d=new Date(base);d.setDate(d.getDate()-i);const k=dayKey(d.getTime());let h=0;S.fasts.forEach(f=>{if(dayKey(f.end)===k)h=Math.max(h,(f.end-f.start)/36e5)});out.push({k,d:d.getTime(),h})}return out}
@@ -445,7 +506,8 @@ function rProg(){const fs=S.fasts,has=fs.length>0,data=has?barData():barData().m
  const rec=fs.filter(f=>f.end>Date.now()-14*864e5),avg=rec.length?rec.reduce((a,f)=>a+f.end-f.start,0)/rec.length:0,wk=S.workouts.filter(w=>w.ts>Date.now()-7*864e5),wmin=wk.reduce((a,w)=>a+w.min,0);
  const ws=[...S.weights].sort((a,b)=>a.ts-b.ts),lastW=ws[ws.length-1];
  view.innerHTML=`<div class="section"><h1>Progres</h1></div>
- <div class="stats"><div class="stat"><b>${streak()}</b><span class="small muted">hari beruntun</span></div><div class="stat"><b>${avg?(avg/36e5).toFixed(1):'0'}</b><span class="small muted">jam rata-rata, 14 hari</span></div><div class="stat"><b>${wmin}</b><span class="small muted">menit latihan, 7 hari</span></div></div>
+ <div class="stats"><div class="stat"><b>${streak()}</b><span class="small muted">hari beruntun</span></div><div class="stat"><b>${avg?(avg/36e5).toFixed(1).replace('.',','):'0'}</b><span class="small muted">jam rata-rata, 14 hari</span></div><div class="stat"><b>${wmin}</b><span class="small muted">menit latihan, 7 hari</span></div></div>
+ <section class="section"><h2>Analisis 28 hari</h2><div class="card" style="gap:0">${insights(analyze(S)).map(([l,t])=>`<div class="ins"><span class="lv ${l}">${LV[l]}</span><span class="small">${esc(t.replace(/(\d)\.(\d)/g,"$1,$2"))}</span></div>`).join('')}</div><button class="btn block" data-act="coach">Tanya agent</button></section>
  <section class="section"><div class="row"><h2>Lama puasa</h2>${has?'':'<span class="tag">Contoh</span>'}</div><div class="${has?'':'empty-fade'}">${barsSvg(data,S.protocol,!has)}</div><p class="small muted" id="barCap">${has?'Sentuh batang untuk melihat angkanya. Garis putus-putus adalah target '+S.protocol+' jam.':'Grafik ini contoh. Selesaikan satu puasa dan grafik Anda muncul di sini.'}</p></section>
  <section class="section"><div class="row"><h2>Berat badan</h2>${lastW?`<span class="tnum muted small">${ws.length>1?((lastW.kg-ws[0].kg)>0?'+':'')+(lastW.kg-ws[0].kg).toFixed(1)+' kg sejak awal':''}</span>`:''}</div>
   ${ws.length?lineSvg(ws,S.targetWeight):'<p class="muted small">Belum ada catatan. Timbang sekali seminggu pada jam yang sama supaya trennya terbaca.</p>'}
@@ -484,6 +546,7 @@ function openReminders(){const r=S.rem,ck=(k,l)=>`<label class="row" for="r_${k}
 /* ---------- aksi ---------- */
 const ACT={
  ack(){S.ack=true;save();render()},
+ coach:openCoach,
  settings:openSettings,reminders:openReminders,
  start(){S.fast={start:Date.now(),target:S.protocol};save();toast('Puasa dimulai. Target '+S.protocol+' jam.');render()},
  startAt(){S.fast={start:lastAt(eatE()),target:S.protocol};save();render()},
@@ -495,13 +558,13 @@ const ACT={
  async pushOn(){const b=$('#pOn');b.disabled=true;b.textContent='Mengaktifkan...';try{await pushOn();toast('Notifikasi aktif. Tes sedang dikirim.')}catch(e){toast(e.message==='denied'?'Izin ditolak. Izinkan notifikasi di pengaturan HP.':'Gagal mengaktifkan. Periksa internet lalu coba lagi.')}openReminders()},
  async pushOff(){await pushOff();toast('Notifikasi dimatikan.');openReminders()},
  async pushTest(){try{await pushPost('test');toast('Tes terkirim. Tunggu beberapa detik.')}catch(e){toast('Tes gagal. Periksa internet lalu coba lagi.')}},
- copyData(){const t=JSON.stringify(S);navigator.clipboard.writeText(t).then(()=>toast('Cadangan disalin.'),()=>{const x=$('#sRestore');x.value=t;x.select();toast('Salin teks yang terpilih di kotak.')})},
+ copyData(){const{coachCode,...bak}=S,t=JSON.stringify(bak);navigator.clipboard.writeText(t).then(()=>toast('Cadangan disalin.'),()=>{const x=$('#sRestore');x.value=t;x.select();toast('Salin teks yang terpilih di kotak.')})},
  restore(){try{const o=JSON.parse($('#sRestore').value);if(!Array.isArray(o.fasts))throw 0;S=merge(o);save();applyTheme();closeSheet();render();toast('Data dipulihkan.')}catch(e){toast('Teks cadangan tidak terbaca. Salin ulang lalu coba lagi.')}},
  wipe(e){const b=$('#wipe');if(b.dataset.c){S=merge({});save();applyTheme();closeSheet();render();toast('Semua data dihapus.')}else{b.dataset.c=1;b.textContent='Tekan sekali lagi untuk menghapus'}},
  sPause(){ses.run=!ses.run;$('#sP').textContent=ses.run?'Jeda':'Lanjut'},
  sSkip(){sNext()},
  sStop(){sEnd(false)}};
-document.addEventListener('click',e=>{const t=e.target.closest('[data-act],[data-tab],[data-water],[data-filter],[data-fav],[data-ex],[data-plan],[data-proto],[data-delf],[data-close],[data-bar]');
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act],[data-tab],[data-water],[data-filter],[data-fav],[data-ex],[data-plan],[data-proto],[data-delf],[data-close],[data-bar],[data-q]');
  if(!t){if(e.target.matches('[data-scrim]'))closeSheet();return}const d=t.dataset;
  if(d.act)ACT[d.act](e);
  else if(d.tab){closeSheet();tab=d.tab;render();scrollTo(0,0)}
@@ -512,11 +575,12 @@ document.addEventListener('click',e=>{const t=e.target.closest('[data-act],[data
  else if(d.plan)startPlan(d.plan);
  else if(d.proto){S.protocol=+d.proto;if(S.fast)S.fast.target=S.protocol;save();render();openSettings()}
  else if(d.delf){S.fasts.splice(+d.delf,1);save();rProg()}
+ else if(d.q)sendQ(d.q);
  else if(d.bar){$('#barCap').textContent=d.bar}
  else if('close'in d)closeSheet()});
 document.addEventListener('change',e=>{const t=e.target,v=t.value;
  if(t.id==='sEat'&&v){S.eatStart=v}else if(t.id==='sGoal'){S.waterGoal=Math.min(16,Math.max(1,+v||8))}else if(t.id==='sTw'){S.targetWeight=+v||null}else if(t.id==='sTheme'){S.theme=v;applyTheme()}else if(t.id==='rMove'&&v){S.rem.moveAt=v}else if(t.dataset.rem){S.rem[t.dataset.rem]=t.checked}else return;save();render()});
-document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wForm'){const kg=+$('#wKg').value,ts=new Date($('#wDate').value+'T12:00').getTime();if(!kg)return;S.weights=S.weights.filter(w=>dayKey(w.ts)!==dayKey(ts));S.weights.push({ts,kg});save();rProg();toast('Berat tersimpan.')}});
+document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='cForm'){sendQ($('#cQ').value);return}if(e.target.id==='wForm'){const kg=+$('#wKg').value,ts=new Date($('#wDate').value+'T12:00').getTime();if(!kg)return;S.weights=S.weights.filter(w=>dayKey(w.ts)!==dayKey(ts));S.weights.push({ts,kg});save();rProg();toast('Berat tersimpan.')}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ses)closeSheet()});
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkReminders();pushCheck();if(tab==='home')rHome()}});
