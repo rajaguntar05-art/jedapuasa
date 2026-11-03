@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Jeda Puasa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<meta name="description" content="Pendamping puasa intermiten: jam puasa, pengingat, menu, latihan, dan progres.">
+<meta name="theme-color" content="#2D49A6">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Jeda">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+/* Layout: satu kolom sempit dengan jam 24 jam sebagai pusat, navigasi bawah untuk jempol. Malam = nila puasa, siang = kunyit makan. */
+:root{
+  --bg:#EBF0F5;--surface:#FBFCFE;--ink:#15213A;--muted:#55627A;--line:#D2DBE6;
+  --fast:#2D49A6;--fast-soft:#C3CEEE;--on-fast:#FFFFFF;
+  --eat:#E0A100;--eat-soft:#F8E7B4;--on-eat:#241A00;
+  --good:#16794C;--warn:#A85A00;--bad:#B3261E;
+  --fig:#15213A;--fig2:#9AA8C0;
+  --display:"Bricolage Grotesque","Plus Jakarta Sans",system-ui,sans-serif;
+  --body:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1424;--surface:#161F34;--ink:#E8EDF6;--muted:#9EABC2;--line:#2A3651;
+  --fast:#8FA6F7;--fast-soft:#2B3A68;--on-fast:#0D1424;
+  --eat:#F2BC3F;--eat-soft:#4A3A10;--on-eat:#241A00;
+  --good:#58C78F;--warn:#F0A95A;--bad:#F2877F;
+  --fig:#E8EDF6;--fig2:#5C6A88;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1424;--surface:#161F34;--ink:#E8EDF6;--muted:#9EABC2;--line:#2A3651;
+  --fast:#8FA6F7;--fast-soft:#2B3A68;--on-fast:#0D1424;
+  --eat:#F2BC3F;--eat-soft:#4A3A10;--on-eat:#241A00;
+  --good:#58C78F;--warn:#F0A95A;--bad:#F2877F;
+  --fig:#E8EDF6;--fig2:#5C6A88;color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--body);-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--display);line-height:1.15;margin:0;text-wrap:balance;font-weight:700}
+h1{font-size:1.75rem;letter-spacing:-.01em}
+h2{font-size:1.2rem}
+h3{font-size:1rem}
+p{margin:0}
+a{color:var(--fast)}
+:focus-visible{outline:2px solid var(--fast);outline-offset:2px}
+.wrap{max-width:520px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px calc(92px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:20px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:var(--display);font-weight:700;font-size:1.15rem}
+.iconbtn{width:44px;height:44px;border:0;background:none;border-radius:50%;display:grid;place-items:center;cursor:pointer;color:var(--muted);flex:none}
+.iconbtn svg{width:22px;height:22px}
+.muted{color:var(--muted)}
+.small{font-size:.84rem}
+.tnum{font-variant-numeric:tabular-nums}
+.stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+.section{display:flex;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.row>*{min-width:0}
+.row>.btn{flex:none}
+.btn{min-height:48px;padding:10px 18px;border-radius:12px;border:1px solid var(--line);background:var(--surface);font-weight:600;cursor:pointer}
+.btn.primary{background:var(--fast);border-color:var(--fast);color:var(--on-fast)}
+.btn.eat{background:var(--eat);border-color:var(--eat);color:var(--on-eat)}
+.btn.block{width:100%}
+.btn.sm{min-height:40px;padding:6px 12px;font-size:.88rem}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.link{background:none;border:0;padding:8px 2px;color:var(--fast);font-weight:600;cursor:pointer;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:99px;font-size:.8rem;font-weight:700;background:var(--fast-soft);color:var(--ink)}
+.pill.eat{background:var(--eat-soft)}
+.pill.ok{background:none;box-shadow:inset 0 0 0 1.5px var(--good);color:var(--good)}
+/* jam */
+.dial{position:relative;width:min(100%,330px);margin:0 auto;aspect-ratio:1;max-width:100%}
+.dial svg{width:100%;height:100%;display:block}
+.dial-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px;padding:0 22%}
+.timer{font-family:var(--display);font-size:clamp(1.9rem,10.2vw,2.3rem);line-height:1;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.legend{display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;font-size:.84rem;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.phase{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.phase span{height:7px;border-radius:2px;background:var(--line)}
+.phase span.on{background:var(--fast)}
+.pips{display:flex;flex-wrap:wrap;gap:6px}
+.pip{width:26px;height:32px;border-radius:4px 4px 8px 8px;border:1.5px solid var(--fast);background:none;padding:0;cursor:pointer}
+.pip.on{background:var(--fast)}
+/* chips */
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chip{flex:none;min-height:40px;padding:6px 14px;border-radius:99px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:600;font-size:.88rem}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+/* menu + panduan */
+details.item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+details.item>summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+details.item>summary::-webkit-details-marker{display:none}
+details.item>summary::after{content:"+";font:500 1.4rem/1 var(--display);color:var(--muted);flex:none}
+details.item[open]>summary::after{content:"\2013"}
+.item-b{padding:0 14px 14px;display:flex;flex-direction:column;gap:8px}
+.item-b ul,.item-b ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.nums{display:flex;gap:14px;font-size:.84rem;color:var(--muted)}
+.plate{display:grid;grid-template-columns:2fr 1fr;grid-template-rows:auto auto;gap:3px;border-radius:var(--r);overflow:hidden;font-size:.82rem;font-weight:600}
+.plate div{padding:10px;min-width:0}
+.plate .a{background:var(--fast-soft)}
+.plate .b{background:var(--eat-soft)}
+/* latihan */
+.ex-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ex{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:8px 10px 10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;min-width:0}
+.fig{width:100%;display:block;aspect-ratio:12/11}
+.fig-lg{max-width:260px;margin:0 auto}
+.fig line{stroke:var(--fig);stroke-width:5;stroke-linecap:round}
+.fig line.far{stroke:var(--fig2)}
+.fig line.g{stroke:var(--line);stroke-width:2}
+.fig circle{fill:var(--fig)}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(8,12,24,.5);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:520px;max-height:90%;overflow:auto;border-radius:18px 18px 0 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:.84rem;font-weight:600;color:var(--muted)}
+input,select,textarea{min-height:46px;width:100%;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:16px}
+textarea{min-height:90px;font-size:.84rem}
+input[type=checkbox]{width:24px;height:24px;min-height:0;accent-color:var(--fast);flex:none;padding:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.proto{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.proto button{min-height:60px;border-radius:12px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:700;padding:6px 2px}
+.proto button[aria-pressed="true"]{background:var(--fast);color:var(--on-fast);border-color:var(--fast)}
+.proto small{display:block;font-weight:500;font-size:.72rem}
+/* sesi */
+.session{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;display:flex;flex-direction:column;align-items:center;gap:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(20px + env(safe-area-inset-bottom,0px))}
+.session .inner{width:100%;max-width:440px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--fast)}
+.big{font:700 4rem/1 var(--display);font-variant-numeric:tabular-nums}
+/* grafik & stat */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.stat b{display:block;font:700 1.6rem/1.1 var(--display);font-variant-numeric:tabular-nums}
+.chart{width:100%;display:block;height:auto}
+.chart text{font:500 11px var(--body);fill:var(--muted)}
+.chart .hit{fill:transparent;cursor:pointer}
+.tag{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
+.empty-fade{opacity:.45}
+.hist{display:flex;flex-direction:column}
+.hist>div{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.hist>div:first-child{border-top:0}
+.x{border:0;background:none;color:var(--muted);width:40px;height:40px;cursor:pointer;font-size:1.2rem;flex:none}
+/* nav */
+nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav div{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+nav button{border:0;background:none;min-height:62px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer}
+nav svg{width:22px;height:22px}
+nav button[aria-current="page"]{color:var(--fast)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:.9rem;width:max-content;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .22s ease-out}@keyframes up{from{transform:translateY(24px)}to{transform:none}}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="top">
+    <span class="brand">Jeda</span>
+    <button class="iconbtn" data-act="settings" aria-label="Buka pengaturan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button>
+  </header>
+  <main id="view" class="stack" style="gap:20px"></main>
+</div>
+<nav aria-label="Navigasi utama"><div id="nav"></div></nav>
+<div id="overlay"></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+'use strict';
+/* ---------- data ---------- */
+const KEY='jeda.v1';
+const DEF={protocol:16,eatStart:'12:00',fast:null,fasts:[],weights:[],water:{},workouts:[],favs:[],waterGoal:8,targetWeight:null,theme:'auto',ack:false,
+  rem:{close:true,start:true,open:true,water:true,move:false,moveAt:'17:00'},lastCheck:0};
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY));if(r)return merge(r)}catch(e){}return merge({})}
+function merge(r){const s=Object.assign(JSON.parse(JSON.stringify(DEF)),r);s.rem=Object.assign({},DEF.rem,r.rem||{});return s}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}queueSync()}
+
+const PROTO={12:'Awal yang nyaman',14:'Langkah kedua',16:'Paling umum',18:'Lanjutan'};
+const PHASES=[
+ [0,'Mencerna makanan','Tubuh memakai energi dari makanan terakhir. Gula darah dan insulin masih naik setelah makan.'],
+ [4,'Pencernaan selesai','Gula darah kembali ke kisaran biasa. Lapar pertama sering muncul di sini dan biasanya reda sendiri.'],
+ [8,'Pakai cadangan glikogen','Hati melepas gula simpanan untuk menjaga energi. Minum air supaya tetap segar.'],
+ [12,'Lemak mulai lebih banyak dipakai','Insulin rendah dan glikogen mulai menipis, sehingga tubuh makin mengandalkan lemak.'],
+ [16,'Pembakaran lemak lebih dominan','Target umum pola 16:8. Sebagian orang merasa lebih fokus, sebagian merasa lemas. Keduanya wajar.'],
+ [18,'Puasa panjang','Dengarkan badan. Buka puasa kalau pusing, gemetar, atau berdebar.']];
+const MENU=[
+ ['Sup ayam sayur bening','buka',280,24,20,['150 g dada ayam','wortel, buncis, kol','bawang putih, seledri, garam, merica'],'Rebus ayam dengan bawang putih geprek 10 menit. Masukkan wortel, lalu buncis dan kol. Bumbui, taburi seledri.'],
+ ['Telur orak-arik bayam dan tomat','buka',260,17,10,['2 butir telur','1 genggam bayam','1 buah tomat','1 sdt minyak'],'Tumis tomat dan bayam sampai layu. Tuang telur kocok, aduk pelan sampai matang.'],
+ ['Oat pisang kayu manis','buka',310,10,8,['40 g oat','1 buah pisang','200 ml susu rendah lemak','kayu manis bubuk'],'Masak oat dengan susu 3 menit. Tambahkan irisan pisang dan kayu manis.'],
+ ['Smoothie pisang yoghurt','buka',240,10,5,['1 buah pisang','100 g yoghurt tawar','100 ml susu atau air','1 sdm selai kacang tipis'],'Blender semua bahan sampai halus. Minum perlahan.'],
+ ['Pepes ikan kembung dan nasi merah','utama',460,32,40,['1 ekor kembung sedang','bumbu kuning, kemangi, tomat','100 g nasi merah','lalapan timun dan kol'],'Lumuri ikan dengan bumbu, bungkus daun pisang, kukus 20 menit, lalu bakar sebentar. Sajikan dengan nasi dan lalapan.'],
+ ['Ayam bakar dan tumis kangkung','utama',520,38,35,['1 potong paha ayam tanpa kulit','bumbu kecap tipis','1 ikat kangkung','100 g nasi'],'Ungkep ayam dengan bumbu, bakar sampai kecokelatan. Tumis kangkung dengan bawang putih sebentar.'],
+ ['Gado-gado porsi sedang','utama',420,18,25,['sayur rebus aneka','1 butir telur','50 g tahu dan tempe','2 sdm bumbu kacang'],'Tata sayur, telur, tahu, tempe. Siram bumbu kacang secukupnya. Kurangi kerupuk dan lontong.'],
+ ['Tempe bacem dan sayur asem','utama',480,22,35,['100 g tempe','1 mangkuk sayur asem','100 g nasi','sambal secukupnya'],'Rebus tempe dalam bumbu bacem, panggang atau goreng dengan sedikit minyak. Sajikan dengan sayur asem hangat.'],
+ ['Capcay ayam udang','utama',340,26,20,['100 g ayam dan udang','sawi, wortel, kembang kol','saus tiram 1 sdm','air dan maizena sedikit'],'Tumis bawang putih dan protein. Masukkan sayur keras lebih dulu, tambah air dan saus, kentalkan.'],
+ ['Ikan kuah kuning','utama',330,30,25,['150 g ikan tongkol atau kakap','kunyit, serai, daun jeruk','tomat dan belimbing wuluh','air asam'],'Rebus bumbu halus dengan serai dan daun jeruk. Masukkan ikan dan tomat, masak 10 menit.'],
+ ['Soto ayam bening','utama',380,26,30,['120 g ayam suwir','tauge, kol, soun sedikit','1 butir telur','kuah kunyit tanpa santan'],'Rebus ayam dengan bumbu kuning, suwir. Tata isi di mangkuk dan siram kuah panas.'],
+ ['Telur rebus dan buah','camilan',190,13,10,['2 butir telur rebus','1 potong pepaya atau apel'],'Rebus telur 9 menit. Sajikan dengan buah potong.'],
+ ['Edamame kukus','camilan',130,11,6,['100 g edamame beku','garam sedikit'],'Kukus 5 menit, taburi garam.'],
+ ['Tempe panggang sambal','camilan',170,14,12,['80 g tempe','kecap dan sambal sedikit'],'Iris tipis, olesi kecap, panggang di teflon sampai kering.'],
+ ['Yoghurt tawar dan pepaya','camilan',160,8,3,['120 g yoghurt tawar','1 potong pepaya','biji chia atau kacang cincang'],'Campur semua dalam mangkuk.'],
+ ['Kacang panggang dan pisang','camilan',230,7,1,['25 g kacang tanah atau almond','1 buah pisang kecil'],'Siapkan satu genggam saja. Kacang padat energi.']];
+const MCAT={buka:'Buka puasa',utama:'Makan utama',camilan:'Camilan',fav:'Favorit'};
+
+/* pose: titik sendi di bidang 120x110, lantai y=104 */
+function pose(o){const p=Object.assign({h:[60,15],s:[60,30],p:[60,60],e:[60,45],w:[60,58],k:[60,82],a:[60,101]},o);
+  p.t=o.t||[p.a[0]+9,p.a[1]+2];p.e2=o.e2||p.e;p.w2=o.w2||p.w;p.k2=o.k2||p.k;p.a2=o.a2||p.a;p.t2=o.t2||(o.a2?[p.a2[0]+9,p.a2[1]+2]:p.t);return p}
+const PLANK_LEGS={a:[12,97],t:[16,103],k:[38,91]};
+const EX={
+ jalan:{n:'Jalan cepat',m:'Jantung, kaki',sec:3,v:'Mulai 2 menit tempo santai, lalu naikkan sampai napas terasa tapi masih bisa bicara.',
+  a:pose({e:[66,44],w:[74,54],e2:[54,44],w2:[48,56],k:[68,81],a:[76,100],k2:[53,81],a2:[42,97]}),b:pose({e:[54,44],w:[48,56],e2:[66,44],w2:[74,54],k:[53,81],a:[42,97],k2:[68,81],a2:[76,100]}),
+  st:['Pandang lurus ke depan, bahu rileks.','Ayunkan lengan dari bahu dengan siku sedikit ditekuk.','Melangkah dari tumit ke ujung jari.','Jaga tempo sampai bicara mulai terasa agak berat.'],
+  err:['Membungkuk melihat HP','Langkah terlalu panjang'],ez:'Jalan di tempat di dalam rumah.'},
+ squat:{n:'Squat',m:'Paha, bokong',sec:3,v:'Turun 2 hitungan, naik 1 hitungan.',
+  a:pose({e:[74,34],w:[88,34]}),b:pose({h:[62,36],s:[56,50],p:[42,76],k:[66,76],a:[60,101],e:[71,52],w:[86,52]}),
+  st:['Berdiri, kaki selebar bahu, ujung kaki sedikit keluar.','Dorong pinggul ke belakang seperti mau duduk.','Turun sampai paha hampir sejajar lantai.','Dorong lantai dengan seluruh telapak untuk berdiri.'],
+  err:['Tumit terangkat','Lutut jatuh ke dalam','Punggung membulat'],ez:'Duduk lalu berdiri dari kursi.'},
+ pushup:{n:'Push-up',m:'Dada, lengan, inti',sec:3,v:'Turun pelan, badan tetap satu garis.',
+  a:pose({...PLANK_LEGS,p:[62,82],s:[92,68],h:[104,58],e:[92,84],w:[92,102]}),b:pose({...PLANK_LEGS,p:[62,88],k:[38,93],s:[92,86],h:[105,78],e:[80,84],w:[92,102]}),
+  st:['Letakkan tangan sedikit lebih lebar dari bahu.','Kencangkan perut sehingga kepala sampai tumit lurus.','Tekuk siku sekitar 45 derajat dari badan.','Dorong lantai sampai lengan lurus.'],
+  err:['Pinggul turun','Siku melebar 90 derajat','Kepala mendongak'],ez:'Tumpu lutut, atau dorong dinding sambil berdiri.'},
+ plank:{n:'Plank',m:'Perut, punggung bawah',sec:4,v:'Tahan dan bernapas normal.',
+  a:pose({...PLANK_LEGS,p:[62,86],s:[90,80],h:[102,72],e:[90,100],w:[108,101]}),b:pose({...PLANK_LEGS,p:[62,84],s:[90,79],h:[102,71],e:[90,100],w:[108,101]}),
+  st:['Tumpu lengan bawah, siku tepat di bawah bahu.','Luruskan kaki dan tumpu ujung jari kaki.','Kencangkan perut dan bokong.','Tahan dengan napas teratur.'],
+  err:['Pinggul terlalu tinggi','Menahan napas'],ez:'Tumpu lutut dengan badan tetap lurus.'},
+ lunge:{n:'Lunge',m:'Paha, bokong',sec:3.4,v:'Ganti kaki tiap repetisi.',
+  a:pose({e:[68,46],w:[60,58]}),b:pose({h:[60,28],s:[60,43],p:[60,71],e:[68,59],w:[60,71],k:[84,72],a:[84,101],k2:[46,92],a2:[28,96],t2:[32,103]}),
+  st:['Berdiri tegak, tangan di pinggang.','Melangkah ke depan cukup lebar.','Turunkan badan sampai lutut belakang mendekati lantai.','Dorong kaki depan untuk kembali berdiri.'],
+  err:['Lutut depan melewati jari jauh','Badan condong ke depan'],ez:'Pegang sandaran kursi, turun separuh.'},
+ bridge:{n:'Glute bridge',m:'Bokong, punggung bawah',sec:3,v:'Tahan 1 hitungan di atas.',
+  a:pose({h:[14,96],s:[30,100],p:[62,100],e:[44,101],w:[56,101],k:[80,78],a:[92,100]}),b:pose({h:[14,96],s:[30,98],p:[60,78],e:[44,101],w:[56,101],k:[84,70],a:[92,100]}),
+  st:['Berbaring, lutut ditekuk, telapak kaki di lantai.','Letakkan lengan di samping badan.','Dorong tumit dan angkat pinggul.','Remas bokong di atas, lalu turun pelan.'],
+  err:['Punggung melengkung berlebihan','Mendorong dengan ujung kaki'],ez:'Kurangi tinggi angkatan.'},
+ bird:{n:'Bird-dog',m:'Inti, punggung',sec:4,v:'Gerak pelan, pinggul tetap rata. Ganti sisi.',
+  a:pose({h:[92,58],s:[78,68],p:[46,68],e:[78,84],w:[78,101],k:[46,100],a:[20,97],t:[16,103]}),b:pose({h:[92,58],s:[78,68],p:[46,68],e:[78,84],w:[78,101],k:[46,100],a:[20,97],t:[16,103],e2:[94,64],w2:[110,60],k2:[26,68],a2:[8,66],t2:[4,60]}),
+  st:['Posisi merangkak, tangan di bawah bahu, lutut di bawah pinggul.','Luruskan lengan kanan ke depan dan kaki kiri ke belakang.','Tahan 2 hitungan tanpa memutar pinggul.','Kembali, lalu ganti sisi.'],
+  err:['Pinggang melengkung','Kaki diangkat terlalu tinggi'],ez:'Angkat lengan saja atau kaki saja.'},
+ jack:{n:'Jumping jack',m:'Jantung, seluruh badan',sec:1.6,v:'Mendarat lembut di ujung kaki.',
+  a:pose({e:[52,44],w:[50,58],e2:[68,44],w2:[70,58],k:[55,82],a:[53,101],t:[48,103],k2:[65,82],a2:[67,101],t2:[72,103]}),
+  b:pose({h:[60,13],s:[60,28],p:[60,58],e:[46,20],w:[38,6],e2:[74,20],w2:[82,6],k:[46,80],a:[36,100],t:[30,103],k2:[74,80],a2:[84,100],t2:[90,103]}),
+  st:['Berdiri rapat, lengan di samping.','Lompat kecil, buka kaki selebar bahu lebih.','Bersamaan, angkat lengan ke atas kepala.','Lompat kembali ke posisi awal.'],
+  err:['Mendarat dengan tumit keras','Lutut terkunci'],ez:'Tanpa lompat: buka satu kaki bergantian.'},
+ climber:{n:'Mountain climber',m:'Inti, jantung',sec:1.6,v:'Mulai pelan. Kecepatan datang belakangan.',
+  a:pose({p:[62,82],s:[92,68],h:[104,58],e:[92,84],w:[92,102],k:[80,88],a:[62,97],t:[67,103],k2:[38,90],a2:[14,97],t2:[18,103]}),
+  b:pose({p:[62,82],s:[92,68],h:[104,58],e:[92,84],w:[92,102],k:[38,90],a:[14,97],t:[18,103],k2:[80,88],a2:[62,97],t2:[67,103]}),
+  st:['Mulai dari posisi push-up atas.','Tarik satu lutut ke arah dada.','Kembalikan, ganti lutut lain.','Jaga pinggul tetap rendah.'],
+  err:['Pinggul naik turun','Bahu jauh di belakang tangan'],ez:'Letakkan tangan di meja atau bangku.'},
+ calf:{n:'Angkat tumit',m:'Betis',sec:2.4,v:'Tahan 1 hitungan di atas.',
+  a:pose({}),b:pose({h:[60,9],s:[60,24],p:[60,54],e:[60,39],w:[60,52],k:[60,76],a:[59,95],t:[67,103]}),
+  st:['Berdiri tegak, pegang dinding bila perlu.','Angkat tumit setinggi mungkin.','Tahan sebentar.','Turunkan perlahan.'],
+  err:['Goyang ke depan','Terlalu cepat'],ez:'Lakukan sambil duduk di kursi.'},
+ stretch:{n:'Peregangan paha belakang',m:'Paha belakang, punggung',sec:5,v:'Berhenti di titik tarikan terasa, tanpa nyeri.',
+  a:pose({}),b:pose({p:[52,60],s:[76,70],h:[86,82],e:[76,84],w:[72,97],k:[58,82],a:[60,101]}),
+  st:['Berdiri, lutut sedikit lunak.','Bungkukkan badan dari pinggul.','Biarkan tangan menggantung ke arah kaki.','Bernapas pelan, lalu bangkit perlahan.'],
+  err:['Menghentak-hentak','Menahan napas'],ez:'Letakkan tangan di paha atau kursi.'}};
+const PLANS=[
+ {id:'p10',n:'Dasar',d:'Untuk mulai. Aman di kamar.',rest:15,s:[['jalan',120],['squat',40],['bridge',40],['bird',40],['calf',40],['plank',20],['stretch',60]]},
+ {id:'k20',n:'Kekuatan',d:'Dua putaran seluruh badan. Paling pas dekat jam makan.',rest:20,s:[['jalan',120],['squat',45],['pushup',40],['lunge',45],['bridge',45],['plank',30],['squat',45],['pushup',40],['lunge',45],['bird',45],['plank',30],['climber',30],['stretch',60]]},
+ {id:'c15',n:'Kardio ringan',d:'Bisa saat puasa kalau badan terasa enak.',rest:15,s:[['jalan',180],['jack',30],['calf',40],['jalan',120],['jack',30],['squat',40],['jalan',120],['stretch',60]]}];
+const GUIDE=[
+ ['Sebelum mulai',[['Siapa yang perlu bertanya ke dokter dulu','Puasa intermiten tidak cocok untuk semua orang. Bicarakan dulu dengan dokter kalau Anda hamil, menyusui, sedang merencanakan kehamilan, memakai insulin atau obat diabetes, punya riwayat gangguan makan, sakit maag berat atau asam lambung parah, berusia di bawah 18 tahun, atau minum obat yang harus diminum bersama makanan.'],
+  ['Kapan harus berhenti','Buka puasa dan istirahat kalau pusing berat, gemetar, berkeringat dingin, berdebar, atau hampir pingsan. Kalau keluhan tidak reda setelah makan dan minum, cari bantuan medis. Hubungi dokter juga kalau keluhan berulang.'],
+  ['Pola mana yang dipilih','Mulai dari 12:12 selama beberapa hari, naik ke 14:10, lalu 16:8 kalau nyaman. Kenaikan 1 jam per minggu lebih mudah dipertahankan daripada lompat langsung.']]],
+ ['Saat puasa',[['Yang boleh diminum','Air putih, kopi hitam tanpa gula, teh tawar, dan air soda tawar. Susu, gula, madu, dan jus menghentikan puasa.'],
+  ['Saat lapar datang','Lapar datang bergelombang dan biasanya reda dalam 15 sampai 20 menit. Minum segelas air, teh tawar, jalan sebentar, atau kerjakan hal yang menyibukkan tangan.'],
+  ['Sakit kepala dan haus','Sering terkait kurang minum. Target sekitar 8 gelas per hari, lebih banyak kalau berkeringat. Kopi berlebihan saat perut kosong bisa membuat perut perih dan berdebar.'],
+  ['Tidur membantu','Jam tidur ikut menghitung puasa. Berhenti makan 2 sampai 3 jam sebelum tidur biasanya membuat tidur lebih nyenyak dan pagi lebih ringan.']]],
+ ['Saat makan',[['Buka puasa pelan','Mulai dari air dan makanan ringan berprotein atau berserat. Beri jeda 15 menit sebelum makan besar supaya tidak kekenyangan.'],
+  ['Jangan balas dendam','Jendela makan bukan waktu bebas. Hasil tetap mengikuti total makanan harian. Gorengan, minuman manis, dan porsi besar bisa menghapus defisit dalam satu kali makan.'],
+  ['Prioritaskan protein','Sertakan lauk berprotein tiap makan: ikan, ayam, telur, tahu, tempe. Protein membantu kenyang dan menjaga otot, apalagi kalau berat turun.'],
+  ['Ikuti Isi Piringku','Setengah piring sayur dan buah. Setengah lainnya makanan pokok dan lauk.']]],
+ ['Olahraga',[['Waktu terbaik','Latihan berat paling enak dilakukan dekat jam makan, supaya bisa makan protein sesudahnya. Jalan kaki dan latihan ringan bisa kapan saja.'],
+  ['Latihan saat puasa','Kalau baru mulai, kurangi intensitas 1 sampai 2 minggu pertama. Sediakan air. Berhenti kalau kepala terasa ringan.'],
+  ['Berapa banyak','WHO menganjurkan orang dewasa aktif 150 sampai 300 menit intensitas sedang per minggu, ditambah latihan kekuatan 2 hari per minggu.']]],
+ ['Salah kaprah',[['Berat turun cepat di minggu pertama','Sebagian besar biasanya air dan isi usus. Lihat tren beberapa minggu. Berat harian bisa naik turun 1 kg atau lebih.'],
+  ['Satu kali gagal berarti mulai dari nol','Tidak. Hari besar, sakit, atau acara keluarga itu wajar. Lanjutkan besok.'],
+  ['Makin lama makin baik','Tidak selalu. Pola yang bisa Anda jalani berbulan-bulan lebih berguna daripada puasa panjang yang membuat Anda kelelahan.']]],
+ ['Aplikasi',[['Tentang fase puasa','Jam fase di layar utama adalah perkiraan umum. Waktunya berbeda tiap orang tergantung makanan terakhir dan aktivitas.'],
+  ['Tentang angka kalori','Kalori dan protein pada menu adalah perkiraan per porsi, bukan hasil timbangan.'],
+  ['Data Anda','Semua catatan tersimpan di HP ini saja. Salin cadangan di Pengaturan sebelum ganti HP atau menghapus data browser.']]]];
+
+/* ---------- waktu ---------- */
+const p2=n=>String(n).padStart(2,'0');
+const toMin=t=>{const[a,b]=t.split(':').map(Number);return a*60+b};
+const fromMin=m=>{m=((m%1440)+1440)%1440;return p2(Math.floor(m/60))+':'+p2(m%60)};
+const tm=ts=>{const d=new Date(ts);return p2(d.getHours())+':'+p2(d.getMinutes())};
+const dayKey=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+const midnight=ts=>{const d=new Date(ts);d.setHours(0,0,0,0);return d.getTime()};
+const dateId=(ts,o={day:'numeric',month:'short'})=>new Date(ts).toLocaleDateString('id-ID',o);
+const dur=ms=>{const m=Math.round(ms/60000);return Math.floor(m/60)+'j '+p2(m%60)+'m'};
+const hms=ms=>{const s=Math.max(0,Math.floor(ms/1000));return p2(Math.floor(s/3600))+':'+p2(Math.floor(s/60)%60)+':'+p2(s%60)};
+const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60};
+const eatH=()=>24-S.protocol;
+const eatS=()=>toMin(S.eatStart);
+const eatE=()=>eatS()+eatH()*60;
+const inEat=()=>{const x=((nowMin()-eatS())+1440)%1440;return x<eatH()*60};
+function nextAt(minOfDay){const n=Date.now(),b=midnight(n)+((minOfDay%1440)*60000);return b>n?b:b+864e5}
+function lastAt(minOfDay){return nextAt(minOfDay)-864e5}
+
+/* ---------- pengingat ---------- */
+function events(dayTs){const d=midnight(dayTs),r=S.rem,o=[];const add=(m,title,body)=>o.push({ts:d+((m%1440+1440)%1440)*60000,title,body});
+ if(r.close)add(eatE()-30,'Makan terakhir','Jendela makan tutup 30 menit lagi, pukul '+fromMin(eatE())+'.');
+ if(r.start)add(eatE(),'Mulai puasa','Jendela makan sudah tutup. Buka Jeda untuk mulai mencatat.');
+ if(r.open)add(eatS(),'Waktunya buka puasa','Mulai dari air dan makanan ringan berprotein.');
+ if(r.move)add(toMin(r.moveAt),'Waktunya bergerak','Sesi singkat sudah cukup untuk hari ini.');
+ if(r.water)for(let m=9*60;m<=21*60;m+=180){const x=((m-eatS())+1440)%1440;if(x>=eatH()*60)add(m,'Minum air','Satu gelas dulu. Tubuh tetap perlu cairan saat puasa.')}
+ return o.sort((a,b)=>a.ts-b.ts)}
+function nextEvent(){const n=Date.now();return events(n).concat(events(n+864e5)).find(e=>e.ts>n)}
+function notify(title,body){
+ toast(title+': '+body);
+ try{if(!('Notification'in window)||Notification.permission!=='granted')return;
+  const o={body,icon:'icon-192.png',badge:'icon-192.png',tag:title};
+  if(S.push&&title!=='Contoh pengingat')return;
+  if(navigator.serviceWorker&&navigator.serviceWorker.controller)navigator.serviceWorker.ready.then(r=>r.showNotification(title,o));
+  else new Notification(title,o)}catch(e){}}
+function checkReminders(){const n=Date.now();const from=Math.max(S.lastCheck||n,n-20*60000);
+ const due=events(n-864e5).concat(events(n)).filter(e=>e.ts>from&&e.ts<=n);
+ if(due.length){const e=due[due.length-1];notify(e.title,e.body)}
+ if(S.lastCheck!==n){S.lastCheck=n;save()}}
+/* push dari server */
+const canPush=()=>!!document.querySelector('link[rel=manifest]')&&'serviceWorker'in navigator&&'PushManager'in window;
+const b64u=s=>{const r=atob((s+'==='.slice((s.length+3)%4)).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0))};
+function pushCfg(){let tz='Asia/Jakarta';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||tz}catch(e){}
+ return{tz,eatStart:S.eatStart,protocol:S.protocol,rem:S.rem,fastDoneAt:S.fast?S.fast.start+S.fast.target*36e5:null}}
+async function pushPost(action){const r=await navigator.serviceWorker.ready,sub=await r.pushManager.getSubscription();if(!sub)throw new Error('nosub');
+ const res=await fetch('/api/push/sync',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action,sub:sub.toJSON(),cfg:pushCfg()})});if(!res.ok)throw new Error(await res.text());return sub}
+let syncT,syncedAt='';
+function queueSync(){if(!S.push)return;clearTimeout(syncT);syncT=setTimeout(async()=>{const c=JSON.stringify(pushCfg());if(c===syncedAt)return;try{await pushPost('sync');syncedAt=c}catch(e){}},1200)}
+async function pushOn(){if(await Notification.requestPermission()!=='granted')throw new Error('denied');
+ const r=await navigator.serviceWorker.ready;let sub=await r.pushManager.getSubscription();
+ if(!sub){const k=await(await fetch('/api/push/key')).json();sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k.publicKey)})}
+ await pushPost('test');S.push=true;save()}
+async function pushOff(){try{const r=await navigator.serviceWorker.ready,sub=await r.pushManager.getSubscription();if(sub){await pushPost('remove');await sub.unsubscribe()}}catch(e){}S.push=false;save()}
+async function pushCheck(){if(!S.push||!canPush())return;try{const r=await navigator.serviceWorker.ready;if(!await r.pushManager.getSubscription()){S.push=false;save();return}syncedAt='';queueSync()}catch(e){}}
+function gcal(title,minOfDay,details){const b=new Date(nextAt(minOfDay)),e=new Date(b.getTime()+15*60000);
+ const f=d=>d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+'T'+p2(d.getHours())+p2(d.getMinutes())+'00';
+ let tz='Asia/Jakarta';try{tz=Intl.DateTimeFormat().resolvedOptions().timeZone||tz}catch(x){}
+ return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent(title)+'&dates='+f(b)+'/'+f(e)+'&ctz='+encodeURIComponent(tz)+'&details='+encodeURIComponent(details)+'&recur='+encodeURIComponent('RRULE:FREQ=DAILY')}
+
+/* ---------- UI dasar ---------- */
+const $=s=>document.querySelector(s);
+const view=$('#view'),overlay=$('#overlay');
+let tab='home',menuFilter='all';
+const ICON={home:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',menu:'<path d="M3 13a9 9 0 0 0 18 0zM8 9c0-2 2-2 2-4M14 9c0-2 2-2 2-4"/>',ex:'<path d="M3 9v6M6 6v12M18 6v12M21 9v6M6 12h12"/>',prog:'<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',guide:'<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/>'};
+const TABS=[['home','Puasa'],['menu','Menu'],['ex','Latihan'],['prog','Progres'],['guide','Panduan']];
+function renderNav(){$('#nav').innerHTML=TABS.map(([k,l])=>`<button data-tab="${k}" ${tab===k?'aria-current="page"':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>${l}</button>`).join('')}
+let toastT;function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,3600)}
+let stopFig=null;
+function openSheet(h){closeSheet();overlay.innerHTML=`<div class="scrim" data-scrim><div class="sheet" role="dialog" aria-modal="true">${h}</div></div>`;const f=overlay.querySelector('svg[data-fig]');if(f)stopFig=animate(f)}
+function closeSheet(){if(stopFig){stopFig();stopFig=null}overlay.innerHTML=''}
+function applyTheme(){const r=document.documentElement;if(S.theme==='auto')r.removeAttribute('data-theme');else r.setAttribute('data-theme',S.theme)}
+function render(){renderNav();({home:rHome,menu:rMenu,ex:rEx,prog:rProg,guide:rGuide})[tab]()}
+
+/* ---------- figur ---------- */
+function figSvg(id,cls=''){const L=(c='')=>`<line class="${c}"/>`;return `<svg class="fig ${cls}" viewBox="0 0 120 110" data-fig="${id}" role="img" aria-label="Gerakan ${EX[id].n}"><line class="g" x1="4" y1="105" x2="116" y2="105"/>${L('far').repeat(5)}${L().repeat(7)}<circle r="7"/></svg>`}
+function drawFig(svg,t){const ex=EX[svg.dataset.fig],A=ex.a,B=ex.b,q=k=>[A[k][0]+(B[k][0]-A[k][0])*t,A[k][1]+(B[k][1]-A[k][1])*t];
+ const seg=[['s','e2'],['e2','w2'],['p','k2'],['k2','a2'],['a2','t2'],['h','s'],['s','p'],['s','e'],['e','w'],['p','k'],['k','a'],['a','t']];
+ const ls=svg.querySelectorAll('line:not(.g)');seg.forEach(([x,y],i)=>{const a=q(x),b=q(y);ls[i].setAttribute('x1',a[0]);ls[i].setAttribute('y1',a[1]);ls[i].setAttribute('x2',b[0]);ls[i].setAttribute('y2',b[1])});
+ const c=svg.querySelector('circle'),h=q('h');c.setAttribute('cx',h[0]);c.setAttribute('cy',h[1])}
+function animate(svg){const ex=EX[svg.dataset.fig];if(matchMedia('(prefers-reduced-motion: reduce)').matches){drawFig(svg,.9);return()=>{}}
+ let raf,go=true;const t0=performance.now();const f=n=>{if(!go)return;const x=((n-t0)/1000/ex.sec)%1;drawFig(svg,.5-.5*Math.cos(x*2*Math.PI));raf=requestAnimationFrame(f)};raf=requestAnimationFrame(f);return()=>{go=false;cancelAnimationFrame(raf)}}
+
+/* ---------- Puasa ---------- */
+function arc(r,a0,a1){const pt=m=>{const a=m/1440*2*Math.PI-Math.PI/2;return[150+r*Math.cos(a),150+r*Math.sin(a)]};let d=((a1-a0)%1440+1440)%1440;if(d<1)d=1439.9;const[x0,y0]=pt(a0),[x1,y1]=pt(a0+d);return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${d>720?1:0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`}
+function dialSvg(){const ticks=[];for(let h=0;h<24;h++){const a=h/24*2*Math.PI-Math.PI/2,big=h%6===0,r0=big?102:105;ticks.push(`<line x1="${(150+r0*Math.cos(a)).toFixed(1)}" y1="${(150+r0*Math.sin(a)).toFixed(1)}" x2="${(150+110*Math.cos(a)).toFixed(1)}" y2="${(150+110*Math.sin(a)).toFixed(1)}" stroke="var(--muted)" stroke-width="${big?2:1}"/>`)}
+ const lab=['00','06','12','18'].map((t,i)=>{const a=i/4*2*Math.PI-Math.PI/2;return `<text x="${(150+89*Math.cos(a)).toFixed(1)}" y="${(154+89*Math.sin(a)).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--muted)">${t}</text>`}).join('');
+ return `<svg viewBox="0 0 300 300" aria-hidden="true"><path d="${arc(130,eatE(),eatS())}" fill="none" stroke="var(--fast)" stroke-width="16"/><path d="${arc(130,eatS(),eatE())}" fill="none" stroke="var(--eat)" stroke-width="16"/>${ticks.join('')}${lab}<path id="dProg" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/><circle id="dNow" r="8" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/></svg>`}
+function rHome(){const today=dayKey(Date.now()),w=S.water[today]||0;
+ view.innerHTML=`${S.ack?'':`<div class="card"><h3>Sebelum mulai</h3><p class="small">Kalau Anda hamil, menyusui, memakai insulin atau obat diabetes, punya riwayat gangguan makan, atau berusia di bawah 18 tahun, tanyakan ke dokter dulu.</p><div class="row"><button class="link" data-tab="guide">Baca panduan</button><button class="btn sm" data-act="ack">Mengerti</button></div></div>`}
+ <section class="stack" aria-live="off">
+  <div class="dial">${dialSvg()}<div class="dial-c"><span class="pill" id="hPill"></span><div class="timer" id="hTimer"></div><span class="small muted" id="hSub"></span></div></div>
+  <div class="legend tnum"><span><i style="background:var(--eat)"></i>Makan ${S.eatStart} sampai ${fromMin(eatE())}</span><span><i style="background:var(--fast)"></i>Puasa ${S.protocol} jam</span></div>
+  <div id="hAct" class="stack" style="gap:4px"></div>
+ </section>
+ <div class="card" id="hPhase"></div>
+ <div class="card"><div class="row"><h3>Air minum</h3><span class="tnum muted small">${w} dari ${S.waterGoal} gelas</span></div><div class="pips" role="group" aria-label="Gelas air">${Array.from({length:S.waterGoal},(_,i)=>`<button class="pip ${i<w?'on':''}" data-water="${i+1}" aria-label="${i+1} gelas"></button>`).join('')}</div></div>
+ <div class="card"><div class="row"><div><h3>Pengingat berikutnya</h3><p class="small muted" id="hNext"></p></div><button class="btn sm" data-act="reminders">Atur</button></div></div>`;
+ tick()}
+function tick(){if(tab!=='home'||!$('#hTimer'))return;const n=Date.now(),f=S.fast,P=$('#hPill'),T=$('#hTimer'),Sb=$('#hSub'),A=$('#hAct');
+ const a=nowMin()/1440*2*Math.PI-Math.PI/2,c=$('#dNow');c.setAttribute('cx',(150+130*Math.cos(a)).toFixed(1));c.setAttribute('cy',(150+130*Math.sin(a)).toFixed(1));
+ const prog=$('#dProg');let key;
+ if(f){const el=n-f.start,tg=f.target*36e5,done=el>=tg;P.className='pill'+(done?' ok':'');P.textContent=done?'Target tercapai':'Sedang puasa';T.textContent=hms(el);
+  Sb.textContent=done?'Lebih '+dur(el-tg)+' dari target':'Sisa '+dur(tg-el);
+  const m0=new Date(f.start),s=m0.getHours()*60+m0.getMinutes();prog.setAttribute('d',el<864e5?arc(116,s,s+Math.max(el/60000,1)):arc(116,s,s-1));key='fast'+done;
+  if(A.dataset.k!==key){A.dataset.k=key;A.innerHTML=`<button class="btn ${done?'eat':'primary'} block" data-act="end">Buka puasa</button><button class="link" data-act="editStart">Ubah waktu mulai (${tm(f.start)})</button>`}
+  const h=el/36e5;let i=PHASES.length-1;while(i>0&&h<PHASES[i][0])i--;const ph=PHASES[i];
+  const k2='p'+i;const box=$('#hPhase');if(box.dataset.k!==k2){box.dataset.k=k2;box.innerHTML=`<div class="row"><h3>${ph[1]}</h3><span class="small muted tnum">jam ${ph[0]}+</span></div><div class="phase">${PHASES.map((_,j)=>`<span class="${j<=i?'on':''}"></span>`).join('')}</div><p class="small">${ph[2]}</p><p class="small muted">Perkiraan umum, berbeda pada tiap orang.</p>`}
+ }else{prog.removeAttribute('d');const eat=inEat();
+  if(eat){P.className='pill eat';P.textContent='Jendela makan';T.textContent=hms(nextAt(eatE())-n);Sb.textContent='Sampai tutup pukul '+fromMin(eatE())}
+  else{P.className='pill';P.textContent='Jam puasa';T.textContent=hms(nextAt(eatS())-n);Sb.textContent='Sampai makan pukul '+S.eatStart}
+  key='idle'+eat;if(A.dataset.k!==key){A.dataset.k=key;A.innerHTML=`<button class="btn primary block" data-act="start">Mulai puasa sekarang</button>${eat?'':`<button class="link" data-act="startAt">Saya sudah mulai pukul ${fromMin(eatE())}</button>`}`}
+  const box=$('#hPhase'),k2='m'+eat;if(box.dataset.k!==k2){box.dataset.k=k2;const pool=MENU.filter(m=>m[1]===(eat?'utama':'buka'));const m=pool[new Date().getDate()%pool.length];
+   box.innerHTML=`<div class="row"><h3>${eat?'Saran makan hari ini':'Saran buka puasa'}</h3><button class="link small" data-tab="menu">Semua menu</button></div><p><b>${m[0]}</b></p><p class="small muted tnum">Sekitar ${m[2]} kkal, ${m[3]} g protein, ${m[4]} menit</p>`}}
+ const ne=nextEvent();const x=$('#hNext');if(x)x.textContent=ne?tm(ne.ts)+' · '+ne.title:'Semua pengingat mati'}
+
+/* ---------- Menu ---------- */
+function rMenu(){const list=MENU.map((m,i)=>[m,i]).filter(([m,i])=>menuFilter==='all'||(menuFilter==='fav'?S.favs.includes(i):m[1]===menuFilter));
+ view.innerHTML=`<div class="section"><h1>Menu pilihan</h1><p class="muted">Masakan rumahan dengan protein cukup untuk jendela makan Anda.</p></div>
+ <div class="plate" role="img" aria-label="Isi Piringku: setengah piring sayur dan buah, setengah lainnya makanan pokok dan lauk"><div class="a">Sayur, 1/3 piring</div><div class="b">Makanan pokok, 1/3</div><div class="a">Buah, 1/6</div><div class="b">Lauk protein, 1/6</div></div>
+ <div class="chips">${[['all','Semua'],...Object.entries(MCAT)].map(([k,l])=>`<button class="chip" aria-pressed="${menuFilter===k}" data-filter="${k}">${l}</button>`).join('')}</div>
+ <div class="stack">${list.map(([m,i])=>`<details class="item"><summary><span><b>${m[0]}</b><br><span class="nums tnum"><span>${m[2]} kkal</span><span>${m[3]} g protein</span><span>${m[4]} menit</span></span></span></summary><div class="item-b"><ul>${m[5].map(x=>`<li>${x}</li>`).join('')}</ul><p>${m[6]}</p><button class="btn sm" data-fav="${i}" style="align-self:flex-start">${S.favs.includes(i)?'Hapus dari favorit':'Simpan ke favorit'}</button></div></details>`).join('')||'<div class="card"><p class="muted">Belum ada favorit. Buka satu menu lalu tekan Simpan ke favorit.</p></div>'}</div>
+ <p class="small muted">Kalori dan protein adalah perkiraan per porsi.</p>`}
+
+/* ---------- Latihan ---------- */
+const planMin=p=>Math.round(p.s.reduce((a,x)=>a+x[1],0)/60+(p.s.length-1)*p.rest/60);
+function rEx(){view.innerHTML=`<div class="section"><h1>Latihan</h1><p class="muted">Ikuti sesi terpandu tanpa alat, atau pelajari gerakannya satu per satu.</p></div>
+ <section class="section"><h2>Sesi terpandu</h2>${PLANS.map(p=>`<div class="card"><div class="row"><div><h3>${p.n}</h3><p class="small muted">${p.d}</p><p class="small muted tnum">${planMin(p)} menit, ${p.s.length} gerakan</p></div><button class="btn primary sm" data-plan="${p.id}">Mulai</button></div></div>`).join('')}</section>
+ <section class="section"><h2>Tutorial gerakan</h2><div class="ex-grid">${Object.keys(EX).map(k=>`<button class="ex" data-ex="${k}">${figSvg(k)}<b>${EX[k].n}</b><span class="small muted">${EX[k].m}</span></button>`).join('')}</div></section>`;
+ view.querySelectorAll('svg[data-fig]').forEach(s=>drawFig(s,1))}
+function openEx(id){const e=EX[id];openSheet(`<div class="row"><h2>${e.n}</h2><button class="iconbtn" data-close aria-label="Tutup">✕</button></div>${figSvg(id,'fig-lg')}<p class="muted small">Melatih: ${e.m}. ${e.v}</p>
+ <div class="section"><h3>Langkah</h3><ol style="margin:0;padding-left:20px">${e.st.map(s=>`<li>${s}</li>`).join('')}</ol></div>
+ <div class="section"><h3>Kesalahan umum</h3><ul style="margin:0;padding-left:20px">${e.err.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+ <div class="section"><h3>Versi lebih mudah</h3><p>${e.ez}</p></div>`)}
+let ses=null;
+function beep(f=880,d=.12){try{ses.ac=ses.ac||new(window.AudioContext||window.webkitAudioContext)();const o=ses.ac.createOscillator(),g=ses.ac.createGain();o.frequency.value=f;g.gain.value=.12;o.connect(g).connect(ses.ac.destination);o.start();o.stop(ses.ac.currentTime+d)}catch(e){}}
+function startPlan(id){const p=PLANS.find(x=>x.id===id),q=[];p.s.forEach((x,i)=>{q.push({ex:x[0],t:x[1]});if(i<p.s.length-1)q.push({rest:1,t:p.rest,nx:x[0]&&p.s[i+1][0]})});
+ ses={p,q,i:0,left:q[0].t,run:true,t0:Date.now(),done:0};try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>ses&&(ses.lock=w)).catch(()=>{})}catch(e){}
+ beep();ses.tm=setInterval(sTick,1000);sRender()}
+function sRender(){if(stopFig){stopFig();stopFig=null}const s=ses,c=s.q[s.i],id=c.rest?c.nx:c.ex,e=EX[id],pct=s.i/s.q.length*100;
+ overlay.innerHTML=`<div class="session"><div class="inner"><div class="bar"><i style="width:${pct}%"></i></div><p class="small muted">${s.p.n}</p><span class="pill ${c.rest?'eat':''}" style="align-self:center">${c.rest?'Istirahat':'Gerakan'}</span><h1>${c.rest?'Berikutnya: '+e.n:e.n}</h1>${figSvg(id,'fig-lg')}<div class="big" id="sLeft">${c.left??s.left}</div><p class="small">${e.v}</p>
+ <div class="grid2"><button class="btn" data-act="sPause" id="sP">${s.run?'Jeda':'Lanjut'}</button><button class="btn" data-act="sSkip">Lewati</button></div><button class="link" data-act="sStop">Akhiri sesi</button></div></div>`;
+ stopFig=animate(overlay.querySelector('svg[data-fig]'))}
+function sTick(){const s=ses;if(!s||!s.run)return;s.left--;if(!s.q[s.i].rest)s.done++;if(s.left<=3&&s.left>0)beep(660,.06);if(s.left<=0)return sNext();const l=$('#sLeft');if(l)l.textContent=s.left}
+function sNext(){const s=ses;s.i++;if(s.i>=s.q.length)return sEnd(true);s.left=s.q[s.i].t;beep();sRender()}
+function sEnd(full){const s=ses;clearInterval(s.tm);try{s.lock&&s.lock.release()}catch(e){}if(stopFig){stopFig();stopFig=null}overlay.innerHTML='';const m=Math.max(1,Math.round((Date.now()-s.t0)/60000));
+ if(full||s.done>=60){S.workouts.push({ts:Date.now(),min:m,name:s.p.n});save();toast('Sesi '+m+' menit tercatat.')}ses=null;render()}
+
+/* ---------- Progres ---------- */
+function streak(){const ok=new Set(S.fasts.filter(f=>(f.end-f.start)/36e5>=f.target-.25).map(f=>dayKey(f.end)));let d=midnight(Date.now()),c=0;if(!ok.has(dayKey(d)))d-=864e5;while(ok.has(dayKey(d+432e5))){c++;d=midnight(d-432e5)}return c}
+function barData(){const out=[],base=midnight(Date.now());for(let i=13;i>=0;i--){const d=new Date(base);d.setDate(d.getDate()-i);const k=dayKey(d.getTime());let h=0;S.fasts.forEach(f=>{if(dayKey(f.end)===k)h=Math.max(h,(f.end-f.start)/36e5)});out.push({k,d:d.getTime(),h})}return out}
+function barsSvg(data,target,sample){const W=340,H=170,L=26,B=22,T=8,top=Math.max(20,Math.ceil(Math.max(...data.map(d=>d.h),target)/4)*4),y=v=>T+(H-T-B)*(1-v/top),bw=(W-L)/data.length;
+ let g='';for(let v=0;v<=top;v+=top>20?8:4+(top>12?4:0)){g+=`<line x1="${L}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`}
+ const bars=data.map((d,i)=>{const x=L+i*bw+2,w=bw-4,hh=Math.max(0,y(0)-y(d.h));const col=d.h>=target-.25?'var(--fast)':'var(--fast-soft)';const lb=i%3===1||i===data.length-1?`<text x="${x+w/2}" y="${H-6}" text-anchor="middle">${new Date(d.d).getDate()}</text>`:'';
+  return `${d.h?`<path d="M${x} ${y(0)}V${y(d.h)+Math.min(4,hh)}q0 -${Math.min(4,hh)} ${Math.min(4,w/2)} -${Math.min(4,hh)}H${x+w-Math.min(4,w/2)}q${Math.min(4,w/2)} 0 ${Math.min(4,w/2)} ${Math.min(4,hh)}V${y(0)}Z" fill="${col}"/>`:''}${lb}${sample?'':`<rect class="hit" x="${L+i*bw}" y="0" width="${bw}" height="${H}" data-bar="${dateId(d.d)}: ${d.h?d.h.toFixed(1)+' jam':'tidak ada puasa'}"/>`}`}).join('');
+ return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Lama puasa 14 hari terakhir">${g}<line x1="${L}" x2="${W}" y1="${y(target)}" y2="${y(target)}" stroke="var(--eat)" stroke-width="2" stroke-dasharray="5 4"/>${bars}</svg>`}
+function lineSvg(pts,target){const W=340,H=170,L=34,R=12,B=22,T=10,vals=pts.map(p=>p.kg).concat(target?[target]:[]);let lo=Math.floor(Math.min(...vals)-1),hi=Math.ceil(Math.max(...vals)+1);const t0=pts[0].ts,t1=pts[pts.length-1].ts,x=t=>t1===t0?(L+W-R)/2:L+(W-L-R)*(t-t0)/(t1-t0),y=v=>T+(H-T-B)*(1-(v-lo)/(hi-lo));
+ const st=Math.max(1,Math.ceil((hi-lo)/3));let g='';for(let v=lo;v<=hi;v+=st)g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+ const d=pts.map((p,i)=>(i?'L':'M')+x(p.ts).toFixed(1)+' '+y(p.kg).toFixed(1)).join(''),last=pts[pts.length-1];
+ return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Berat badan">${g}${target?`<line x1="${L}" x2="${W-R}" y1="${y(target)}" y2="${y(target)}" stroke="var(--eat)" stroke-width="2" stroke-dasharray="5 4"/>`:''}${pts.length>1?`<path d="${d}L${x(last.ts)} ${y(lo)}L${x(t0)} ${y(lo)}Z" fill="var(--fast-soft)" opacity=".55"/><path d="${d}" fill="none" stroke="var(--fast)" stroke-width="2" stroke-linejoin="round"/>`:''}${pts.map(p=>`<circle cx="${x(p.ts)}" cy="${y(p.kg)}" r="${p===last?5:2.5}" fill="var(--fast)" stroke="var(--surface)" stroke-width="2"/>`).join('')}<text x="${L}" y="${H-6}">${dateId(t0)}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${dateId(t1)}</text></svg>`}
+function rProg(){const fs=S.fasts,has=fs.length>0,data=has?barData():barData().map((d,i)=>({...d,h:[14,16,16.5,0,15,16.2,17,16,0,16.4,14.5,16,16.8,16][i]}));
+ const rec=fs.filter(f=>f.end>Date.now()-14*864e5),avg=rec.length?rec.reduce((a,f)=>a+f.end-f.start,0)/rec.length:0,wk=S.workouts.filter(w=>w.ts>Date.now()-7*864e5),wmin=wk.reduce((a,w)=>a+w.min,0);
+ const ws=[...S.weights].sort((a,b)=>a.ts-b.ts),lastW=ws[ws.length-1];
+ view.innerHTML=`<div class="section"><h1>Progres</h1></div>
+ <div class="stats"><div class="stat"><b>${streak()}</b><span class="small muted">hari beruntun</span></div><div class="stat"><b>${avg?(avg/36e5).toFixed(1):'0'}</b><span class="small muted">jam rata-rata, 14 hari</span></div><div class="stat"><b>${wmin}</b><span class="small muted">menit latihan, 7 hari</span></div></div>
+ <section class="section"><div class="row"><h2>Lama puasa</h2>${has?'':'<span class="tag">Contoh</span>'}</div><div class="${has?'':'empty-fade'}">${barsSvg(data,S.protocol,!has)}</div><p class="small muted" id="barCap">${has?'Sentuh batang untuk melihat angkanya. Garis putus-putus adalah target '+S.protocol+' jam.':'Grafik ini contoh. Selesaikan satu puasa dan grafik Anda muncul di sini.'}</p></section>
+ <section class="section"><div class="row"><h2>Berat badan</h2>${lastW?`<span class="tnum muted small">${ws.length>1?((lastW.kg-ws[0].kg)>0?'+':'')+(lastW.kg-ws[0].kg).toFixed(1)+' kg sejak awal':''}</span>`:''}</div>
+  ${ws.length?lineSvg(ws,S.targetWeight):'<p class="muted small">Belum ada catatan. Timbang sekali seminggu pada jam yang sama supaya trennya terbaca.</p>'}
+  <form id="wForm" class="grid2"><div class="field"><label for="wKg">Berat (kg)</label><input id="wKg" type="number" inputmode="decimal" step="0.1" min="25" max="300" required value="${lastW?lastW.kg:''}"></div><div class="field"><label for="wDate">Tanggal</label><input id="wDate" type="date" required value="${dayKey(Date.now())}" max="${dayKey(Date.now())}"></div><button class="btn primary" style="grid-column:1/-1">Simpan berat</button></form></section>
+ <section class="section"><h2>Riwayat</h2><div class="card hist">${[...fs].reverse().slice(0,8).map((f,i)=>`<div><span><b class="tnum">${dur(f.end-f.start)}</b><br><span class="small muted tnum">${dateId(f.end)}, ${tm(f.start)} sampai ${tm(f.end)}</span></span><button class="x" data-delf="${fs.length-1-i}" aria-label="Hapus catatan">×</button></div>`).join('')||'<p class="muted small">Puasa yang selesai akan tercatat di sini.</p>'}</div></section>`}
+
+/* ---------- Panduan ---------- */
+function rGuide(){view.innerHTML=`<div class="section"><h1>Panduan</h1><p class="muted">Tips singkat untuk puasa yang nyaman. Bukan pengganti saran dokter.</p></div>${GUIDE.map(([t,it])=>`<section class="section"><h2>${t}</h2><div class="stack" style="gap:8px">${it.map(([q,a])=>`<details class="item"><summary><b>${q}</b></summary><div class="item-b"><p>${a}</p></div></details>`).join('')}</div></section>`).join('')}`}
+
+/* ---------- Pengaturan ---------- */
+let deferred=null;
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+function openSettings(){const ios=/iphone|ipad/i.test(navigator.userAgent);openSheet(`<div class="row"><h2>Pengaturan</h2><button class="iconbtn" data-close aria-label="Tutup">✕</button></div>
+ <div class="section"><h3>Pola puasa</h3><div class="proto">${[12,14,16,18].map(p=>`<button aria-pressed="${S.protocol===p}" data-proto="${p}">${p}:${24-p}<small>${PROTO[p]}</small></button>`).join('')}</div></div>
+ <div class="grid2"><div class="field"><label for="sEat">Jendela makan mulai</label><input id="sEat" type="time" value="${S.eatStart}"></div><div class="field"><label for="sGoal">Target air (gelas)</label><input id="sGoal" type="number" min="1" max="16" value="${S.waterGoal}"></div><div class="field"><label for="sTw">Target berat (kg, opsional)</label><input id="sTw" type="number" step="0.1" value="${S.targetWeight||''}"></div><div class="field"><label for="sTheme">Tampilan</label><select id="sTheme">${[['auto','Ikuti HP'],['light','Terang'],['dark','Gelap']].map(([k,l])=>`<option value="${k}" ${S.theme===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
+ <button class="btn block" data-act="reminders">Atur pengingat</button>
+ ${standalone()?'':`<div class="section"><h3>Pasang di HP</h3>${deferred?'<button class="btn primary block" data-act="install">Pasang aplikasi</button>':`<p class="small muted">${ios?'Di Safari, tekan Bagikan lalu Tambah ke Layar Utama.':'Di Chrome, buka menu titik tiga lalu Tambahkan ke layar utama.'}</p>`}</div>`}
+ <div class="section"><h3>Cadangan data</h3><p class="small muted">Data hanya ada di HP ini. Salin teks cadangan dan simpan di catatan Anda.</p><button class="btn block" data-act="copyData">Salin cadangan</button><div class="field"><label for="sRestore">Pulihkan dari cadangan</label><textarea id="sRestore" placeholder="Tempel teks cadangan di sini"></textarea></div><button class="btn block" data-act="restore">Pulihkan</button></div>
+ <button class="btn danger block" data-act="wipe" id="wipe">Hapus semua data</button>`)}
+function pushNote(){const ios=/iphone|ipad/i.test(navigator.userAgent),t=(x)=>`<p class="small muted">${x}</p>`;
+ if(!document.querySelector('link[rel=manifest]'))return t('Tersedia di aplikasi yang dipasang dari Netlify. Versi coba ini tidak bisa mengirim notifikasi.');
+ if(ios&&!standalone())return t('Di iPhone, pasang dulu lewat Bagikan, Tambah ke Layar Utama, lalu buka dari ikon Jeda.');
+ if(!canPush())return t('Browser ini tidak mendukung notifikasi push. Coba Chrome di Android atau Safari iOS 16.4 ke atas.');
+ if(Notification.permission==='denied')return t('Notifikasi diblokir. Izinkan lewat pengaturan situs atau pengaturan aplikasi di HP.');
+ return t(S.push?'Pengingat dikirim walau aplikasi tertutup. Bisa terlambat sampai 5 menit.':'Pengingat datang walau aplikasi tertutup. Tekan tombol di bawah, lalu pilih Izinkan.')}
+function openReminders(){const r=S.rem,ck=(k,l)=>`<label class="row" for="r_${k}" style="min-height:44px"><span>${l}</span><input type="checkbox" id="r_${k}" data-rem="${k}" ${r[k]?'checked':''}></label>`;
+ const perm=('Notification'in window)?Notification.permission:'none';
+ openSheet(`<div class="row"><h2>Pengingat</h2><button class="iconbtn" data-close aria-label="Tutup">✕</button></div>
+ <div class="card">${ck('close','Makan terakhir, 30 menit sebelum tutup')}${ck('start','Jendela makan tutup, mulai puasa')}${ck('open','Waktunya buka puasa')}${ck('water','Minum air tiap 3 jam saat puasa')}${ck('move','Waktunya bergerak')}<div class="field"><label for="rMove">Jam latihan</label><input id="rMove" type="time" value="${r.moveAt}"></div></div>
+ <div class="section"><div class="row"><h3>Notifikasi aplikasi</h3><span class="pill ${S.push?'ok':''}">${S.push?'Aktif':'Mati'}</span></div>${pushNote()}${S.push?'<div class="grid2"><button class="btn" data-act="pushTest">Kirim tes</button><button class="btn" data-act="pushOff">Matikan</button></div>':(canPush()?'<button class="btn primary block" data-act="pushOn" id="pOn">Aktifkan notifikasi</button>':'')}</div>
+ <details class="item"><summary><b>Cadangan: Google Calendar</b></summary><div class="item-b"><p class="small muted">Tidak wajib. Pakai kalau notifikasi aplikasi tidak muncul di HP Anda.</p><a class="btn block" style="text-align:center;text-decoration:none;display:block" target="_blank" rel="noopener" href="${gcal('Makan terakhir',eatE()-30,'Jendela makan tutup 30 menit lagi.')}">Tambah: makan terakhir ${fromMin(eatE()-30)}</a>
+ <a class="btn block" style="text-align:center;text-decoration:none;display:block" target="_blank" rel="noopener" href="${gcal('Mulai puasa',eatE(),'Buka Jeda dan tekan Mulai puasa.')}">Tambah: mulai puasa ${fromMin(eatE())}</a>
+ <a class="btn block" style="text-align:center;text-decoration:none;display:block" target="_blank" rel="noopener" href="${gcal('Buka puasa',eatS(),'Mulai dari air dan makanan ringan berprotein.')}">Tambah: buka puasa ${S.eatStart}</a>
+ <p class="small muted">Ubah pola puasa? Hapus jadwal lama di kalender, lalu tambah lagi dari sini.</p></div></details>`)}
+
+/* ---------- aksi ---------- */
+const ACT={
+ ack(){S.ack=true;save();render()},
+ settings:openSettings,reminders:openReminders,
+ start(){S.fast={start:Date.now(),target:S.protocol};save();toast('Puasa dimulai. Target '+S.protocol+' jam.');render()},
+ startAt(){S.fast={start:lastAt(eatE()),target:S.protocol};save();render()},
+ end(){const f=S.fast,n=Date.now();if(n-f.start>=6e4)S.fasts.push({start:f.start,end:n,target:f.target});S.fast=null;save();toast(n-f.start>=6e4?'Puasa '+dur(n-f.start)+' tercatat.':'Puasa dibatalkan.');render()},
+ editStart(){const d=new Date(S.fast.start-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16);openSheet(`<h2>Ubah waktu mulai</h2><div class="field"><label for="eS">Mulai puasa</label><input id="eS" type="datetime-local" value="${d}"></div><button class="btn primary block" data-act="saveStart">Simpan</button><button class="link" data-act="cancelFast">Batalkan puasa ini</button>`)},
+ saveStart(){const v=new Date($('#eS').value).getTime(),n=Date.now();if(!v||v>n||n-v>48*36e5){toast('Pilih waktu dalam 48 jam terakhir.');return}S.fast.start=v;save();closeSheet();render()},
+ cancelFast(){S.fast=null;save();closeSheet();render()},
+ install(){if(deferred){deferred.prompt();deferred=null;closeSheet()}},
+ async pushOn(){const b=$('#pOn');b.disabled=true;b.textContent='Mengaktifkan...';try{await pushOn();toast('Notifikasi aktif. Tes sedang dikirim.')}catch(e){toast(e.message==='denied'?'Izin ditolak. Izinkan notifikasi di pengaturan HP.':'Gagal mengaktifkan. Periksa internet lalu coba lagi.')}openReminders()},
+ async pushOff(){await pushOff();toast('Notifikasi dimatikan.');openReminders()},
+ async pushTest(){try{await pushPost('test');toast('Tes terkirim. Tunggu beberapa detik.')}catch(e){toast('Tes gagal. Periksa internet lalu coba lagi.')}},
+ copyData(){const t=JSON.stringify(S);navigator.clipboard.writeText(t).then(()=>toast('Cadangan disalin.'),()=>{const x=$('#sRestore');x.value=t;x.select();toast('Salin teks yang terpilih di kotak.')})},
+ restore(){try{const o=JSON.parse($('#sRestore').value);if(!Array.isArray(o.fasts))throw 0;S=merge(o);save();applyTheme();closeSheet();render();toast('Data dipulihkan.')}catch(e){toast('Teks cadangan tidak terbaca. Salin ulang lalu coba lagi.')}},
+ wipe(e){const b=$('#wipe');if(b.dataset.c){S=merge({});save();applyTheme();closeSheet();render();toast('Semua data dihapus.')}else{b.dataset.c=1;b.textContent='Tekan sekali lagi untuk menghapus'}},
+ sPause(){ses.run=!ses.run;$('#sP').textContent=ses.run?'Jeda':'Lanjut'},
+ sSkip(){sNext()},
+ sStop(){sEnd(false)}};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-act],[data-tab],[data-water],[data-filter],[data-fav],[data-ex],[data-plan],[data-proto],[data-delf],[data-close],[data-bar]');
+ if(!t){if(e.target.matches('[data-scrim]'))closeSheet();return}const d=t.dataset;
+ if(d.act)ACT[d.act](e);
+ else if(d.tab){closeSheet();tab=d.tab;render();scrollTo(0,0)}
+ else if(d.water){const k=dayKey(Date.now()),v=+d.water;S.water[k]=(S.water[k]===v)?v-1:v;save();rHome()}
+ else if(d.filter){menuFilter=d.filter;rMenu()}
+ else if(d.fav){const i=+d.fav,at=S.favs.indexOf(i);at<0?S.favs.push(i):S.favs.splice(at,1);save();t.textContent=at<0?'Hapus dari favorit':'Simpan ke favorit'}
+ else if(d.ex)openEx(d.ex);
+ else if(d.plan)startPlan(d.plan);
+ else if(d.proto){S.protocol=+d.proto;if(S.fast)S.fast.target=S.protocol;save();render();openSettings()}
+ else if(d.delf){S.fasts.splice(+d.delf,1);save();rProg()}
+ else if(d.bar){$('#barCap').textContent=d.bar}
+ else if('close'in d)closeSheet()});
+document.addEventListener('change',e=>{const t=e.target,v=t.value;
+ if(t.id==='sEat'&&v){S.eatStart=v}else if(t.id==='sGoal'){S.waterGoal=Math.min(16,Math.max(1,+v||8))}else if(t.id==='sTw'){S.targetWeight=+v||null}else if(t.id==='sTheme'){S.theme=v;applyTheme()}else if(t.id==='rMove'&&v){S.rem.moveAt=v}else if(t.dataset.rem){S.rem[t.dataset.rem]=t.checked}else return;save();render()});
+document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='wForm'){const kg=+$('#wKg').value,ts=new Date($('#wDate').value+'T12:00').getTime();if(!kg)return;S.weights=S.weights.filter(w=>dayKey(w.ts)!==dayKey(ts));S.weights.push({ts,kg});save();rProg();toast('Berat tersimpan.')}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!ses)closeSheet()});
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){checkReminders();pushCheck();if(tab==='home')rHome()}});
+if('serviceWorker'in navigator&&document.querySelector('link[rel=manifest]'))navigator.serviceWorker.register('sw.js').catch(()=>{});
+applyTheme();render();checkReminders();pushCheck();
+setInterval(()=>{tick();if(new Date().getSeconds()%30===0)checkReminders()},1000);
+</script>
+
+</body>
+</html>
